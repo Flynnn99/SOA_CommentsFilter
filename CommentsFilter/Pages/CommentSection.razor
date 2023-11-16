@@ -1,0 +1,59 @@
+﻿@using RestSharp;
+@using System.Text.Json;
+@using System.Text.Json.Serialization;
+@using System.Xml.Serialization;
+
+
+<PageTitle>Comment Section</PageTitle>
+<h1>Comment!</h1>
+<p>Enter your comment below:</p>
+<input type="text" id="comments" name="comments" @bind="commentText"/>
+<button @onclick="SubmitComment">Submit</button>
+<ul>
+    @foreach (var comment in comments)
+    {
+        <li>@comment.RawComment</li>
+        <li>@comment.santatisedComment</li>
+    }
+
+
+</ul>
+
+
+
+@code{
+    private List<Comment> comments = new();
+    private string? commentText;
+
+    private void SubmitComment()
+    {
+        if (!string.IsNullOrWhiteSpace(commentText))
+        {
+
+            var newComment = new Comment(commentText);
+            var client = new RestClient("http://www.purgomalum.com/service/xml");
+            var request = new RestRequest();
+            request.AddParameter("text", newComment.RawComment);
+
+            var response = client.Execute(request);
+
+            if (!string.IsNullOrWhiteSpace(response.Content))
+            {
+                var serializer = new XmlSerializer(typeof(PurgoMalum));
+                using (StringReader sr  = new(response.Content))
+                {
+                    PurgoMalum? filtered = (PurgoMalum?)serializer.Deserialize(sr);
+                    newComment.santatisedComment = filtered.result;
+                }
+            }
+
+            
+            
+            
+            comments.Add(newComment);
+        }
+
+        commentText = string.Empty;
+
+    }
+}
